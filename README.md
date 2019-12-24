@@ -5,6 +5,8 @@ Boxfarter
 Boxfarter is a javascript platformer game, shoddily programmed by Wyatt Carss.
 To play, visit [wcarss.ca/boxfarter](http://wcarss.ca/boxfarter).
 
+![not v fart](boxfarter.gif)
+
 Instructions
 ============
 You're the little red box. Get to the little gold box.
