@@ -1,3 +1,5 @@
+import palettes from "./palette.js";
+
 function setup() {
   let _globalContext = null,
     setupContext = function() {
@@ -17,6 +19,7 @@ function setup() {
     ctx = setContext(setupContext()),
     width = window.innerWidth,
     height = window.innerHeight - 4,
+    playerPlaced = false,
     player = {
       x: width / 2,
       y: height - 15,
@@ -24,7 +27,7 @@ function setup() {
       lasty: height - 15,
       width: 25,
       height: 25,
-      speed: 12,
+      speed: 16,
       velX: 0,
       velY: 0,
       jumping: false,
@@ -34,7 +37,10 @@ function setup() {
     gravity = 0.3,
     placingBox = false,
     touch = [],
-    keys = [];
+    keys = [],
+    moveBoxes = true,
+    boxScrollSpeed = randomSelection([0.1, 0.5, 0.5, 0.5, 1, 1, 1, 1, 2, 2, 3]),
+    boxScrollTimer = randomSelection([25, 40, 40]);
 
   var boxes = [];
 
@@ -45,7 +51,8 @@ function setup() {
     y: 0,
     width: 10,
     height: height,
-    color: "black"
+    color: "black",
+    name: "lwall"
   });
 
   // floor
@@ -54,7 +61,8 @@ function setup() {
     y: height - 10,
     width: width,
     height: 50,
-    color: "black"
+    color: "black",
+    name: "floor"
   });
 
   // right wall
@@ -63,7 +71,8 @@ function setup() {
     y: 0,
     width: 50,
     height: height,
-    color: "black"
+    color: "black",
+    name: "rwall"
   });
 
   let boxCounts = [10, 10, 25, 25, 25, 25, 10, 10, 10, 10, 25, 25, 70, 70];
@@ -72,8 +81,8 @@ function setup() {
   let bgColorIndex = randomNumber(paletteSource.length);
   let backgroundColor = paletteSource[bgColorIndex];
   paletteSource.splice(bgColorIndex, 1);
-  palette = [randomSelection(paletteSource), randomSelection(paletteSource)];
-  for (var boxInc = 0; boxInc < numBoxes; boxInc++) {
+  let palette = paletteSource;
+  for (let boxInc = 0; boxInc < numBoxes; boxInc++) {
     let widths = [40, 80, 40, 80, 40, 40, 40, 80, 40, 80, 400],
       heights = [40, 80, 40, 80, 40, 40, 40, 80, 40, 80, 400];
 
@@ -82,7 +91,8 @@ function setup() {
       y: randomNumber(height - 20) + 10,
       width: randomSelection(widths),
       height: randomSelection(heights),
-      color: randomSelection(palette)
+      color: randomSelection(palette),
+      speed: randomSelection([-5, -5, -3, -1, 0, 1, 1, 1, 2, 2, 4, 4, 8, 8, 20])
     });
   }
 
@@ -93,12 +103,13 @@ function setup() {
       width: 30,
       height: 30,
       color: "gold",
-      name: "win"
+      name: "win",
+      speed: randomSelection([-5, -1, 0, 1, 1, 1, 1, 2, 2, 2, 4, 4, 8, 20])
     };
 
   while (!winBox) {
     winBox = true;
-    for (boxInc = 0; boxInc < numBoxes; boxInc++) {
+    for (let boxInc = 0; boxInc < boxes.length; boxInc++) {
       if (colCheck(newBox, boxes[boxInc])) {
         newBox["x"] = randomNumber(width - 20) + 10;
         winBox = false;
@@ -108,6 +119,17 @@ function setup() {
   }
   boxes.push(newBox);
   console.log(boxes);
+
+  while (!playerPlaced) {
+    playerPlaced = true;
+    for (let boxInc = 0; boxInc < boxes.length; boxInc++) {
+      if (colCheck(player, boxes[boxInc])) {
+        player["y"] = randomNumber(height - 20) + 10;
+        playerPlaced = false;
+        break;
+      }
+    }
+  }
 
   function randomNumber(range) {
     return parseInt(Math.floor(Math.random() * range));
@@ -121,40 +143,64 @@ function setup() {
     // check keys
     if (keys[38]) {
       // up arrow
-      if (!player.jumping && player.grounded) {
-        player.jumping = true;
+      if (player.grounded) {
+        placingBox = false;
+      }
+      if (!placingBox) {
+        placingBox = true;
         player.grounded = false;
-        player.velY = -player.speed * 0.75;
+        player.velY = -player.speed * 0.5;
+        setTimeout(function() {
+          placingBox = false;
+        }, 450);
       }
     }
     if (keys[39]) {
       // right arrow
       if (player.velX < player.speed) {
-        player.velX++;
+        player.velX += 2;
       }
     }
     if (keys[37]) {
       // left arrow
       if (player.velX > -player.speed) {
-        player.velX--;
+        player.velX -= 2;
       }
     }
     if (keys[32]) {
       if (placingBox === false) {
         placingBox = true;
-        setTimeout(function() {
-          boxes.push({
-            x: player.x,
-            y: player.y,
-            width: player.width,
-            height: player.height,
-            color: "red"
-          });
-        }, 20);
-        setTimeout(function() {
-          placingBox = false;
-        }, 350);
+        //  setTimeout(function() {
+        //    boxes.push({
+        //      x: player.x,
+        //      y: player.y + player.height,
+        //      width: player.width - 2,
+        //      height: player.height - 2,
+        //      color: "black",
+        //      speed: randomSelection([-2, -1, 0, 1, 1, 1, 1, 2, 2, 2, 4, 4])
+        //    });
+        // }, 20);
+        //setTimeout(function() {
+        //  placingBox = false;
+        //}, 350);
       }
+    }
+
+    if (moveBoxes) {
+      moveBoxes = false;
+      for (let boxInc = 0; boxInc < boxes.length; boxInc++) {
+        if (
+          boxes[boxInc].name !== "floor" &&
+          boxes[boxInc].name !== "lwall" &&
+          boxes[boxInc].name !== "rwall"
+        ) {
+          boxes[boxInc].x -= boxScrollSpeed * boxes[boxInc].speed;
+          if (boxes[boxInc].x <= -10) {
+            boxes[boxInc].x = width;
+          }
+        }
+      }
+      setTimeout(() => (moveBoxes = true), boxScrollTimer);
     }
 
     if (touch["happening"]) {
@@ -175,15 +221,15 @@ function setup() {
       } else {
         if (placingBox === false) {
           placingBox = true;
-          setTimeout(function() {
-            boxes.push({
-              x: player.x,
-              y: player.y,
-              width: player.width,
-              height: player.height,
-              color: "red"
-            });
-          }, 20);
+          //  setTimeout(function() {
+          //    boxes.push({
+          //      x: player.x,
+          //      y: player.y,
+          //      width: player.width,
+          //      height: player.height,
+          //      color: "red"
+          //    });
+          //  }, 20);
           setTimeout(function() {
             placingBox = false;
           }, 350);
@@ -273,6 +319,9 @@ function setup() {
           shapeA.x -= oX;
         }
       }
+    }
+    if (colDir && (shapeA.name === "win" || shapeB.name === "win")) {
+      console.log("win collision, shapeA: ", shapeA, ", shapeB: ", shapeB);
     }
     return colDir;
   }
