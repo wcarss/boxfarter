@@ -1,3 +1,5 @@
+![v color](boxfarter.png)
+
 Boxfarter
 =========
 Boxfarter is a javascript platformer game, shoddily programmed by Wyatt Carss.
